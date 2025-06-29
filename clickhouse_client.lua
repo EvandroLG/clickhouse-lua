@@ -10,6 +10,7 @@ local ClickHouseClient = {}
 ClickHouseClient.__index = ClickHouseClient
 
 --- Creates a new ClickHouseClient instance.
+---
 --- @param config table Configuration table with the following fields:
 --- @field host string The ClickHouse server host (default: "localhost")
 --- @field port number The ClickHouse server port (default: 8123)
@@ -18,14 +19,14 @@ ClickHouseClient.__index = ClickHouseClient
 --- @field database string The database to use (default: "default")
 --- @field timeout number Request timeout in seconds (default: 30)
 --- @field format string The format for data exchange (default: "JSONEachRow")
+---
 --- @return ClickHouseClient A new client instance
 function ClickHouseClient.new(config)
   local self = setmetatable({}, ClickHouseClient)
 
   self.host = config.host or "localhost"
   self.port = config.port or 8123
-  -- Support both 'username' and 'user' for compatibility
-  self.username = config.username or config.user or "default"
+  self.username = config.username or "default"
   self.password = config.password or ""
   self.database = config.database or "default"
   self.timeout = config.timeout or 30
@@ -56,10 +57,13 @@ function ClickHouseClient:_build_headers()
 end
 
 ---Execute a SQL query against ClickHouse server
+---
 ---@param sql string The SQL query to execute
 ---@param params table|nil Optional parameters:
 ---  - format: string - Response format (default: self.format)
+---  - method: string - HTTP method (default: auto-detected based on SQL)
 ---  - Any other key-value pairs will be passed as URL parameters
+---
 ---@return table|string|nil The query results parsed according to format, or raw response text
 ---@return string|nil Error message if the query failed
 function ClickHouseClient:query(sql, params)
@@ -68,20 +72,44 @@ function ClickHouseClient:query(sql, params)
   -- Get the format (either from params or default)
   local format = params.format or self.format
 
-  -- Add FORMAT clause to the SQL if not already present and format is specified
+  -- Determine if we should add FORMAT clause
   local final_sql = sql
-  if format and not string.upper(sql):match("FORMAT%s+%w+") then
+  local sql_upper = string.upper(string.gsub(sql, "^%s+", "")) -- trim leading whitespace and uppercase
+
+  -- Only add FORMAT clause for queries that can benefit from it and don't already have one
+  local should_add_format = format and
+      not sql_upper:match("FORMAT%s+%w+") and
+      not sql_upper:match("VALUES%s*%(") and               -- Don't add to INSERT ... VALUES
+      not sql_upper:match("^INSERT%s+INTO%s+%w+%s+VALUES") -- Alternative INSERT VALUES pattern
+
+  if should_add_format then
     final_sql = sql .. " FORMAT " .. format
   end
 
-  -- Prepare query parameters (excluding format since it's now in SQL)
+  -- Auto-detect HTTP method based on SQL command
+  local method = params.method
+  if not method then
+    if sql_upper:match("^CREATE") or
+        sql_upper:match("^INSERT") or
+        sql_upper:match("^UPDATE") or
+        sql_upper:match("^DELETE") or
+        sql_upper:match("^DROP") or
+        sql_upper:match("^ALTER") or
+        sql_upper:match("^TRUNCATE") then
+      method = "POST"
+    else
+      method = "GET"
+    end
+  end
+
+  -- Prepare query parameters (excluding format and method since they're handled separately)
   local query_params = {
     query = final_sql
   }
 
-  -- Add any additional parameters (except format)
+  -- Add any additional parameters (except format and method)
   for k, v in pairs(params) do
-    if k ~= "format" then
+    if k ~= "format" and k ~= "method" then
       query_params[k] = v
     end
   end
@@ -100,13 +128,24 @@ function ClickHouseClient:query(sql, params)
   -- Prepare response table
   local response_body = {}
 
-  -- Make HTTP request
-  local result, status_code = http.request {
-    url = request_url,
-    method = "GET",
-    headers = self:_build_headers(),
-    sink = ltn12.sink.table(response_body)
-  }
+  -- Make HTTP request with appropriate method
+  local result, status_code
+  if method == "POST" then
+    result, status_code = http.request {
+      url = request_url,
+      method = "POST",
+      headers = self:_build_headers(),
+      source = ltn12.source.string(""), -- Empty body for POST
+      sink = ltn12.sink.table(response_body)
+    }
+  else
+    result, status_code = http.request {
+      url = request_url,
+      method = "GET",
+      headers = self:_build_headers(),
+      sink = ltn12.sink.table(response_body)
+    }
+  end
 
   -- Check for HTTP errors
   if not result then
@@ -119,18 +158,25 @@ function ClickHouseClient:query(sql, params)
 
   local response_text = table.concat(response_body)
 
-  -- Parse response based on format
-  if format == "JSONEachRow" then
+  -- Parse response based on format only if we actually used that format
+  if should_add_format and format == "JSONEachRow" then
     return self:_parse_json_each_row(response_text)
-  elseif format == "JSON" then
+  elseif should_add_format and format == "JSON" then
     return self:_parse_json(response_text)
   else
-    return response_text
+    -- For INSERT/CREATE/etc or when format wasn't added, return raw response or empty table
+    if response_text == "" then
+      return {} -- Empty success response
+    else
+      return response_text
+    end
   end
 end
 
 --- Parse JSONEachRow format response
+---
 --- @param response_text string Raw response text from ClickHouse
+---
 --- @return table|nil Parsed JSON objects as array, or nil on error
 --- @return string|nil Error message if parsing failed
 function ClickHouseClient:_parse_json_each_row(response_text)
@@ -154,7 +200,9 @@ function ClickHouseClient:_parse_json_each_row(response_text)
 end
 
 --- Parse JSON format response
+---
 --- @param response_text string Raw response text from ClickHouse
+---
 --- @return table|nil Parsed JSON object, or nil on error
 --- @return string|nil Error message if parsing failed
 function ClickHouseClient:_parse_json(response_text)
@@ -171,9 +219,11 @@ function ClickHouseClient:_parse_json(response_text)
 end
 
 --- Execute an INSERT query with data
+---
 --- @param table_name string The name of the table to insert into
 --- @param data table Array of objects to insert
 --- @param params table|nil Optional parameters including format
+---
 --- @return boolean|nil True on success, nil on error
 --- @return string|nil Error message if the insertion failed
 function ClickHouseClient:insert(table_name, data, params)
@@ -239,6 +289,7 @@ function ClickHouseClient:ping()
 end
 
 --- Get server information including version and uptime
+---
 --- @return table|nil Server information, or nil on error
 --- @return string|nil Error message if the query failed
 function ClickHouseClient:server_info()
@@ -246,6 +297,7 @@ function ClickHouseClient:server_info()
 end
 
 --- List all databases
+---
 --- @return table|nil Array of database objects, or nil on error
 --- @return string|nil Error message if the query failed
 function ClickHouseClient:show_databases()
@@ -253,6 +305,7 @@ function ClickHouseClient:show_databases()
 end
 
 --- List all tables in the current database
+---
 --- @return table|nil Array of table objects, or nil on error
 --- @return string|nil Error message if the query failed
 function ClickHouseClient:show_tables()
@@ -260,7 +313,9 @@ function ClickHouseClient:show_tables()
 end
 
 --- Describe the structure of a table
+---
 --- @param table_name string The name of the table to describe
+---
 --- @return table|nil Table structure information, or nil on error
 --- @return string|nil Error message if the query failed
 function ClickHouseClient:describe_table(table_name)
