@@ -288,41 +288,6 @@ function ClickHouseClient:ping()
   return false, err
 end
 
---- Get server information including version and uptime
----
---- @return table|nil Server information, or nil on error
---- @return string|nil Error message if the query failed
-function ClickHouseClient:server_info()
-  return self:query("SELECT version() as version, uptime() as uptime")
-end
-
---- List all databases
----
---- @return table|nil Array of database objects, or nil on error
---- @return string|nil Error message if the query failed
-function ClickHouseClient:show_databases()
-  return self:query("SHOW DATABASES")
-end
-
---- List all tables in the current database
----
---- @return table|nil Array of table objects, or nil on error
---- @return string|nil Error message if the query failed
-function ClickHouseClient:show_tables()
-  return self:query("SHOW TABLES")
-end
-
---- Describe the structure of a table
----
---- @param table_name string The name of the table to describe
----
---- @return table|nil Table structure information, or nil on error
---- @return string|nil Error message if the query failed
-function ClickHouseClient:describe_table(table_name)
-  local sql = string.format("DESCRIBE TABLE %s", table_name)
-  return self:query(sql)
-end
-
 return {
   ClickHouseClient = ClickHouseClient
 }

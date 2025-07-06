@@ -10,7 +10,7 @@ deps:
 	@luarocks install lua-cjson || echo "lua-cjson already installed"
 	@echo ""
 	@echo "Installing development dependencies (optional)..."
-	@luarocks install luaunit || echo "Warning: luaunit not available for this Lua version"
+	@luarocks install lunatest || echo "Warning: luacheck not available for this Lua version"
 	@luarocks install luacheck || echo "Warning: luacheck not available for this Lua version"
 	@luarocks install lua-format || echo "Warning: lua-format not available for this Lua version"
 	@luarocks install luasec || echo "Warning: luasec not available (HTTPS support)"
@@ -20,7 +20,7 @@ deps:
 
 test: $(TEST_FILE)
 	@echo "Running tests..."
-	@lua $(TEST_FILE)
+	@lua tests.lua
 
 format:
 	@echo "Formatting Lua code..."
