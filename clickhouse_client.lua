@@ -234,9 +234,11 @@ function ClickHouseClient:insert(table_name, data, params)
   local request_body
   if format == "JSONEachRow" then
     local lines = {}
+
     for _, row in ipairs(data) do
       table.insert(lines, json.encode(row))
     end
+
     request_body = table.concat(lines, "\n")
   elseif format == "JSON" then
     request_body = json.encode({ data = data })
@@ -248,8 +250,6 @@ function ClickHouseClient:insert(table_name, data, params)
   local sql = string.format("INSERT INTO %s FORMAT %s", table_name, format)
   local query_string = "query=" .. url.escape(sql)
   local request_url = self.base_url .. "?" .. query_string
-
-  -- Prepare response table
   local response_body = {}
 
   -- Make HTTP POST request

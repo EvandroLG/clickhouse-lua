@@ -1,3 +1,4 @@
+TEST_FILE = tests.lua
 MAIN_FILE = clickhouse_client.lua
 
 deps:
@@ -18,9 +19,9 @@ deps:
 	@echo "Core dependencies check complete!"
 	@echo "Note: Some dev tools may not be available for your Lua version"
 
-test: $(TEST_FILE)
+test:
 	@echo "Running tests..."
-	@lua tests.lua
+	@lua $(TEST_FILE)
 
 format:
 	@echo "Formatting Lua code..."

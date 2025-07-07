@@ -43,6 +43,17 @@ local function assert_type(value, expected_type, message)
   end
 end
 
+local function assert_true(value, message)
+  if not value then
+    error(message or "Expected true value")
+  end
+end
+
+local function assert_false(value, message)
+  if value then
+    error(message or "Expected false value")
+  end
+end
 
 -- Helper function to create test client with test database
 local function create_test_client(config)
@@ -223,6 +234,58 @@ test("Query handles ClickHouse errors", function()
 
   assert_nil(result, "Result should be nil on SQL error")
   assert_not_nil(err, "Error should be present")
+  assert_type(err, "string", "Error should be a string")
+end)
+
+test("Insert with JSONEachRow format", function()
+  local client = create_test_client()
+  local create_result, create_err = client:query(
+    "CREATE TABLE IF NOT EXISTS test_insert_json (id Int32, name String) ENGINE = Memory")
+
+  local data = {
+    { id = 1, name = "Alice" },
+    { id = 2, name = "Bob" }
+  }
+
+  local result, err = client:insert("test_insert_json", data)
+
+  assert_true(result, "Insert should succeed")
+  assert_nil(err, "Should not have error")
+
+  client:query("DROP TABLE IF EXISTS test_insert_json")
+end)
+
+test("Insert with JSON format", function()
+  local client = create_test_client()
+
+  local _, create_err = client:query(
+    "CREATE TABLE IF NOT EXISTS test_insert_json_format (id Int32, name String) ENGINE = Memory")
+  assert_nil(create_err, "Should create table without error: " .. tostring(create_err))
+
+  local data = {
+    { id = 1, name = "Alice" },
+    { id = 2, name = "Bob" }
+  }
+
+  local result, err = client:insert("test_insert_json_format", data, { format = "JSON" })
+  assert_true(result, "Insert should succeed: " .. tostring(err))
+  assert_nil(err, "Should not have error: " .. tostring(err))
+
+  local verify_result, verify_err = client:query("SELECT COUNT(*) as count FROM test_insert_json_format")
+  assert_nil(verify_err, "Should verify without error: " .. tostring(verify_err))
+  assert_not_nil(verify_result, "Verify result should not be nil")
+
+  client:query("DROP TABLE IF EXISTS test_insert_json_format")
+end)
+
+test("Insert with non-existent table", function()
+  local client = create_test_client()
+
+  local data = { { id = 1, name = "Alice" } }
+  local result, err = client:insert("non_existent_table_12345", data)
+
+  assert_nil(result, "Insert should fail for non-existent table")
+  assert_not_nil(err, "Should have error for non-existent table")
   assert_type(err, "string", "Error should be a string")
 end)
 
