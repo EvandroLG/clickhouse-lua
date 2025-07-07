@@ -109,7 +109,43 @@ else
   print("Table creation failed:", err)
 end
 
-print_section("Example 6: Aggregation and analytics")
+print_section("Example 6: Using the insert method")
+
+-- Create a simple table for insert method demo
+local success, err = client:query("CREATE TABLE IF NOT EXISTS demo_users (id Int32, name String) ENGINE = Memory")
+if success then
+  print("✓ Demo table created")
+
+  -- Insert data using the insert method
+  local users_data = {
+    { id = 1, name = "Alice" },
+    { id = 2, name = "Bob" }
+  }
+
+  local insert_success, insert_err = client:insert("demo_users", users_data)
+  if insert_success then
+    print("✓ Data inserted using insert method")
+
+    -- Query the data back
+    local result, query_err = client:query("SELECT * FROM demo_users ORDER BY id")
+    if result then
+      print("✓ Inserted users:")
+      for _, user in ipairs(result) do
+        print(string.format("  ID: %d, Name: %s", user.id, user.name))
+      end
+    end
+
+    -- Clean up
+    client:query("DROP TABLE demo_users")
+    print("✓ Demo table cleaned up")
+  else
+    print("✗ Insert failed:", insert_err)
+  end
+else
+  print("✗ Table creation failed:", err)
+end
+
+print_section("Example 7: Aggregation and analytics")
 
 local analytics_query = [[
     SELECT

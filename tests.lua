@@ -239,7 +239,7 @@ end)
 
 test("Insert with JSONEachRow format", function()
   local client = create_test_client()
-  local create_result, create_err = client:query(
+  client:query(
     "CREATE TABLE IF NOT EXISTS test_insert_json (id Int32, name String) ENGINE = Memory")
 
   local data = {
@@ -304,4 +304,3 @@ else
   print("L Some tests failed!")
   os.exit(1)
 end
-
