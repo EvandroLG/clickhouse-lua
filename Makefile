@@ -1,5 +1,4 @@
 TEST_FILE = tests.lua
-MAIN_FILE = clickhouse_client.lua
 
 deps:
 	@echo "Installing Lua dependencies..."
@@ -12,8 +11,6 @@ deps:
 	@echo ""
 	@echo "Installing development dependencies (optional)..."
 	@luarocks install lunatest || echo "Warning: luacheck not available for this Lua version"
-	@luarocks install luacheck || echo "Warning: luacheck not available for this Lua version"
-	@luarocks install lua-format || echo "Warning: lua-format not available for this Lua version"
 	@luarocks install luasec || echo "Warning: luasec not available (HTTPS support)"
 	@echo ""
 	@echo "Core dependencies check complete!"
@@ -22,15 +19,6 @@ deps:
 test:
 	@echo "Running tests..."
 	@lua $(TEST_FILE)
-
-format:
-	@echo "Formatting Lua code..."
-	@lua-format -i $(MAIN_FILE)
-	@lua-format -i $(TEST_FILE)
-
-lint:
-	@echo "Running luacheck..."
-	@luacheck $(MAIN_FILE) $(TEST_FILE) --globals=describe,it,assert
 
 clean:
 	@echo "Cleaning build artifacts..."

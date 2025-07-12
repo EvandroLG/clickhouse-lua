@@ -1,0 +1,54 @@
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lua-version: 
+          - "5.4"
+    services:
+      clickhouse:
+        image: clickhouse/clickhouse-server:latest
+        ports:
+          - 18123:8123
+        env:
+          CLICKHOUSE_DB: test_db
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Setup Lua ${{ matrix.lua-version }}
+      uses: leafo/gh-actions-lua@v10
+      with:
+        luaVersion: ${{ matrix.lua-version }}
+    - name: Setup LuaRocks
+      uses: leafo/gh-actions-luarocks@v4
+    - name: Install dependencies
+      run: |
+        luarocks install luasocket
+        luarocks install lua-cjson
+    - name: Wait for ClickHouse to be ready
+      run: |
+        echo "Waiting for ClickHouse to be ready..."
+        timeout 120 bash -c 'until wget --quiet --tries=1 --spider http://localhost:18123/ping; do sleep 2; done'
+        echo "ClickHouse is ready!"
+    - name: Test ClickHouse connection
+      run: |
+        curl -s "http://localhost:18123/ping" || echo "ClickHouse ping failed"
+        curl -s "http://localhost:18123/" -d "SELECT 1" || echo "ClickHouse query test failed"
+    - name: Create test database
+      run: |
+        curl -X POST "http://localhost:18123/" -d "CREATE DATABASE IF NOT EXISTS test_db"
+    - name: Run tests
+      run: |
+        echo "Running test suite..."
+        CLICKHOUSE_PORT=18123 lua tests.lua
+      env:
+        CLICKHOUSE_PORT: 18123

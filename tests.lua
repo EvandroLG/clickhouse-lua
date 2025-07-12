@@ -49,16 +49,15 @@ local function assert_true(value, message)
   end
 end
 
-local function assert_false(value, message)
-  if value then
-    error(message or "Expected false value")
-  end
-end
-
 -- Helper function to create test client with test database
 local function create_test_client(config)
   config = config or {}
   config.database = config.database or "test_db"
+  -- Use custom port for CI testing if environment variable is set
+  local port = os.getenv("CLICKHOUSE_PORT")
+  if port then
+    config.port = tonumber(port)
+  end
   return ClickHouseClient.new(config)
 end
 
