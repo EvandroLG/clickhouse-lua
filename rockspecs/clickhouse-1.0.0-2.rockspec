@@ -1,5 +1,5 @@
 package = "clickhouse"
-version = "1.0.0-1"
+version = "1.0.0-2"
 source = {
   url = "git+https://github.com/EvandroLG/clickhouse-lua.git",
   tag = "v1.0.0"
@@ -22,7 +22,7 @@ dependencies = {
 build = {
   type = "builtin",
   modules = {
-    ["clickhouse_client"] = "clickhouse_client.lua"
+    ["clickhouse"] = "clickhouse_client.lua"
   },
 }
 

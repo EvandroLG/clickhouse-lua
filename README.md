@@ -1,4 +1,4 @@
-# clickhouse-lua  &middot; [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Lua Version](https://img.shields.io/badge/Lua-5.1%2B-blue.svg)](https://www.lua.org/)
+# clickhouse-lua &middot; [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Lua Version](https://img.shields.io/badge/Lua-5.1%2B-blue.svg)](https://www.lua.org/)
 
 A simple, lightweight HTTP-based ClickHouse client for Lua.
 
@@ -19,7 +19,7 @@ luarocks install clickhouse
 ## Quick Start
 
 ```lua
-local clickhouse = require("clickhouse_client")
+local clickhouse = require("clickhouse")
 local client = clickhouse.ClickHouseClient.new({
     host = "localhost",
     port = 8123,
@@ -54,6 +54,7 @@ end
 Creates a new ClickHouse client instance.
 
 **Parameters:**
+
 - `config` (table): Configuration options
   - `host` (string): ClickHouse server host (default: "localhost")
   - `port` (number): ClickHouse server port (default: 8123)
@@ -72,6 +73,7 @@ Creates a new ClickHouse client instance.
 Tests the connection to ClickHouse server.
 
 **Returns:**
+
 - `success` (boolean): True if connection is successful
 - `error` (string|nil): Error message if connection failed
 
@@ -80,6 +82,7 @@ Tests the connection to ClickHouse server.
 Executes a SQL query against ClickHouse.
 
 **Parameters:**
+
 - `sql` (string): SQL query to execute
 - `params` (table|nil): Optional parameters
   - `format` (string): Response format (overrides default)
@@ -87,6 +90,7 @@ Executes a SQL query against ClickHouse.
   - Additional key-value pairs are passed as URL parameters
 
 **Returns:**
+
 - `result` (table|string|nil): Query results (parsed or raw depending on format)
 - `error` (string|nil): Error message if query failed
 
@@ -95,12 +99,14 @@ Executes a SQL query against ClickHouse.
 Inserts data into a ClickHouse table.
 
 **Parameters:**
+
 - `table_name` (string): Name of the target table
 - `data` (table): Array of objects to insert
 - `params` (table|nil): Optional parameters
   - `format` (string): Data format ("JSONEachRow" or "JSON", default: "JSONEachRow")
 
 **Returns:**
+
 - `success` (boolean|nil): True if insertion succeeded
 - `error` (string|nil): Error message if insertion failed
 
