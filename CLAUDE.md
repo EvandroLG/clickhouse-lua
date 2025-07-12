@@ -30,7 +30,6 @@ make deps
 Installs required Lua dependencies via LuaRocks:
 - `luasocket` - HTTP client functionality
 - `lua-cjson` - JSON parsing/encoding
-- Optional dev tools: `luacheck`, `lua-format`, `luasec`
 
 ### Testing
 ```bash
@@ -46,8 +45,6 @@ Runs the complete test suite with custom assertion framework. Tests cover:
 
 ### Code Quality
 ```bash
-make lint    # Run luacheck static analysis
-make format  # Format code with lua-format
 make clean   # Clean build artifacts
 ```
 
@@ -85,8 +82,3 @@ The test suite uses a custom framework with:
 Required:
 - `luasocket` - HTTP client
 - `lua-cjson` - JSON handling
-
-Optional:
-- `luacheck` - Static analysis
-- `lua-format` - Code formatting
-- `luasec` - HTTPS support (not currently used)
