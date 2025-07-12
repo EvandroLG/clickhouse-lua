@@ -1,7 +1,7 @@
 #!/usr/bin/env lua
 -- example.lua - Examples for ClickHouse Lua Client
 
-local clickHouse = require("clickhouse_client")
+local clickHouse = require("clickhouse")
 local ClickHouseClient = clickHouse.ClickHouseClient
 
 local client = ClickHouseClient:new({
